@@ -45,18 +45,19 @@ timestamp_file = File.join(timestamps_dir, account)
 
 entries = @vk.wall.get(domain: page_domain).reverse
 
-timestamp = 0
+timestamp_saved = 0
 
 if File.exists?(timestamp_file)
 	File.open(timestamp_file) { |file|
-	 	timestamp = file.gets
+		s = file.gets
+	 	timestamp_saved = s.to_i
 	}
 end
 
 
 i=0
 
-while timestamp.to_i >= entries[i].date
+while timestamp_saved >= entries[i].date
 	i += 1
 	if i == entries.length - 1
 		puts "No new entries"
@@ -64,11 +65,16 @@ while timestamp.to_i >= entries[i].date
 	end
 end
 
-while i < (entries.length - 1)
+last_posted_nr = i
 
+for i in last_posted_nr...(entries.length - 1) do
+
+	timestamp = entries[i].date
+	if timestamp_saved > timestamp
+		next
+	end
 	url = ""
 	post = entries[i].text
-	timestamp = entries[i].date
 	entries[i].attachments.each {|a| 
 		if a.type == "photo"
 			url = a.photo.src_xbig
@@ -97,11 +103,11 @@ while i < (entries.length - 1)
 		File.open(timestamp_file, "w") { |file|
 			file.puts timestamp
 		}
+		timestamp_saved = timestamp
 	else
 		puts "Something went wrong. Exiting."
 		exit
 	end
 
-	i += 1
 end
 
