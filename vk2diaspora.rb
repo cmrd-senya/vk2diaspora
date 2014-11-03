@@ -75,11 +75,13 @@ for i in last_posted_nr...(entries.length - 1) do
 	end
 	url = ""
 	post = entries[i].text
-	entries[i].attachments.each {|a| 
-		if a.type == "photo"
-			url = a.photo.src_xbig
-		end
-	}
+	if entries[i].attachments != nil
+		entries[i].attachments.each {|a| 
+			if a.type == "photo" and (a.photo.src_xbig!=nil)
+				url = a.photo.src_xbig
+			end
+		}
+	end
 	if url.length > 0
 		post += "\n![image](" + url + ")"
 	end
