@@ -19,31 +19,68 @@
 
 require 'vkontakte_api'
 require 'open3'
+require 'diaspora-api'
+require 'optparse'
+require 'ostruct'
 
 cliaspora_path="cliaspora"
 timestamps_dir=File.join(Dir.home, "vk2diaspora.timestamps")
 
-page_domain=ARGV[0]
-account=ARGV[1]
-aspect=ARGV[2]
-tags=ARGV[3]
+options = OpenStruct.new
+opts = OptionParser.new do |opts|
+	opts.banner = "Usage: vk2diaspora.rb -v <pagename> -d <name@pod.host> -a <aspectname> -p <password> [options]"
 
-if page_domain == nil or account == nil or aspect == nil
-	puts "Usage vk2diaspora <vk page short address> <diaspora account> <diaspora aspect> [additional tags]"
+	opts.on("-v", "--vk-page PAGE", "vk page short address") do |v|
+		options.page_domain = v
+	end
+	opts.on("-d", "--diaspora-account ACCOUNT", "D* account") do |v|
+		options.account = v
+	end
+	opts.on("-a", "--aspect ASPECT", "aspect name (use name \"public\" for public posts)") do |v|
+		options.aspect = v
+	end
+	opts.on("-p", "--password PASSWORD", "password for D* account") do |v|
+		options.password = v
+	end
+	opts.on("-t", "--tags TAGS", "additional tags (optional)") do |v|
+		options.tags = v
+	end
+end
+opts.parse!
+
+
+if options.page_domain == nil or options.account == nil or options.aspect == nil or options.password == nil
+	puts opts
 	exit
 end
+
+if not options.account.include? "@"
+	puts "Wrong account name supplied: " + options.account
+	exit
+end
+
+username = options.account.gsub(/(.+)@(.+)/, '\1')
+podhost = options.account.gsub(/(.+)@(.+)/, '\2')
 
 begin
 	Dir.mkdir(timestamps_dir, 0700)
 rescue Errno::EEXIST
 end
 
-timestamp_file = File.join(timestamps_dir, account)
+timestamp_file = File.join(timestamps_dir, options.account)
+
+diaspora_c = DiasporaApi::Client.new
+if not diaspora_c.login("https://" + podhost, username, options.password)
+	puts "Failed to log in to D*"
+	exit
+end
+
+
 
 @vk = VkontakteApi::Client.new
 
 
-entries = @vk.wall.get(domain: page_domain).reverse
+entries = @vk.wall.get(domain: options.page_domain).reverse
 
 timestamp_saved = 0
 
@@ -88,20 +125,18 @@ for i in last_posted_nr...(entries.length - 1) do
 	post = post.gsub("http://vk.com", "https://vk.com")
 	post = post.gsub("<br>", "\n")
 	post+="\n";
-	if tags != nil
-		post+=tags+"\n"
+	if options.tags != nil
+		post+=options.tags+"\n"
 	end
 
 	puts post
-	w, wt = Open3.pipeline_w (cliaspora_path + " -a " + account + " post " + aspect) 
-	w.puts post
-	w.close
+	resp = diaspora_c.post(post, options.aspect)
 
-	status = wt[0].value.to_i
+	status = resp.code.to_i
 	puts "Status: "
 	puts status
 
-	if status == 0
+	if status == 200 or status == 302
 		File.open(timestamp_file, "w") { |file|
 			file.puts timestamp
 		}
