@@ -23,6 +23,47 @@ require 'diaspora-api'
 require 'optparse'
 require 'ostruct'
 
+def get_name(id)
+	if id > 0
+		user = @vk.users.get(user_ids: id)
+		if user[0]
+			return user[0].first_name + " " + user[0].last_name
+		else
+			return nil
+		end
+	end
+	return nil
+end
+
+def format_post(vk_post, tags)
+	post = vk_post.text
+	if vk_post.attachments != nil
+		vk_post.attachments.each {|a|
+			if a.type == "photo" and (a.photo.photo_1280!=nil)
+				post += "\n![image](" + a.photo.photo_1280 + ")"
+			end
+		}
+	end
+	if vk_post.copy_history
+		g = @vk.groups.getById(group_id: -vk_post.copy_history[0].owner_id)
+		post += "\nReposted from ["+g[0].name+"](https://vk.com/"+g[0].screen_name+"):\n"
+		post += format_post(vk_post.copy_history[0], "")
+	end
+	if vk_post.signer_id
+		author_name = get_name(vk_post.signer_id)
+		if !author_name
+			author_name = "Author"
+		end
+		post += "\n["+author_name+"](https://vk.com/id" + vk_post.signer_id.to_s + ")"
+	end
+	post = post.gsub("http://vk.com", "https://vk.com")
+	post += "\n";
+	if tags != nil
+		post+=tags+"\n"
+	end
+	return post
+end
+
 cliaspora_path="cliaspora"
 timestamps_dir=File.join(Dir.home, "vk2diaspora.timestamps")
 
@@ -76,11 +117,12 @@ if not diaspora_c.login("https://" + podhost, username, options.password)
 end
 
 
-
+VkontakteApi.configure do |config|
+	config.api_version = '5.21'
+end
 @vk = VkontakteApi::Client.new
 
-
-entries = @vk.wall.get(domain: options.page_domain).reverse
+entries = @vk.wall.get(domain: options.page_domain).items.reverse
 
 timestamp_saved = 0
 
@@ -96,7 +138,7 @@ i=0
 
 while timestamp_saved >= entries[i].date
 	i += 1
-	if i == entries.length - 1
+	if i == entries.count
 		puts "No new entries"
 		exit
 	end
@@ -104,31 +146,15 @@ end
 
 last_posted_nr = i
 
-for i in last_posted_nr...(entries.length - 1) do
+for i in last_posted_nr...entries.count do
 
 	timestamp = entries[i].date
 	if timestamp_saved > timestamp
 		next
 	end
-	url = ""
-	post = entries[i].text
-	if entries[i].attachments != nil
-		entries[i].attachments.each {|a| 
-			if a.type == "photo" and (a.photo.src_xbig!=nil)
-				url = a.photo.src_xbig
-			end
-		}
-	end
-	if url.length > 0
-		post += "\n![image](" + url + ")"
-	end
-	post = post.gsub("http://vk.com", "https://vk.com")
-	post = post.gsub("<br>", "\n")
-	post+="\n";
-	if options.tags != nil
-		post+=options.tags+"\n"
-	end
 
+	post = format_post(entries[i], options.tags)
+	post = post.gsub("\n", "  \n")
 	puts post
 	resp = diaspora_c.post(post, options.aspect)
 
