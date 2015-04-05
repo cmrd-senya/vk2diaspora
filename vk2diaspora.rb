@@ -25,9 +25,16 @@ require 'ostruct'
 
 def get_name(id)
 	if id > 0
-		user = @vk.users.get(user_ids: id)
+		user = @vk.users.get(user_ids: id, fields: "screen_name")
 		if user[0]
-			return user[0].first_name + " " + user[0].last_name
+			return user[0].first_name + " " + user[0].last_name, user[0].screen_name
+		else
+			return nil
+		end
+	elsif id < 0
+		g = @vk.groups.getById(group_id: -id)
+		if g[0]
+			return g[0].name, g[0].screen_name
 		else
 			return nil
 		end
@@ -45,16 +52,19 @@ def format_post(vk_post, tags)
 		}
 	end
 	if vk_post.copy_history
-		g = @vk.groups.getById(group_id: -vk_post.copy_history[0].owner_id)
-		post += "\nReposted from ["+g[0].name+"](https://vk.com/"+g[0].screen_name+"):\n"
+		name, screen_name = get_name(vk_post.copy_history[0].owner_id)
+		post += "\nReposted from ["+name+"](https://vk.com/"+screen_name+"):\n"
 		post += format_post(vk_post.copy_history[0], "")
 	end
 	if vk_post.signer_id
-		author_name = get_name(vk_post.signer_id)
+		author_name, screen_name = get_name(vk_post.signer_id)
 		if !author_name
 			author_name = "Author"
 		end
-		post += "\n["+author_name+"](https://vk.com/id" + vk_post.signer_id.to_s + ")"
+		if !screen_name
+			screen_name = "id" + vk_post.signer_id.to_s
+		end
+		post += "\n["+author_name+"](https://vk.com/" + screen_name + ")"
 	end
 	post = post.gsub("http://vk.com", "https://vk.com")
 	post += "\n";
