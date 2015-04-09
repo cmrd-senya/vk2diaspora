@@ -46,8 +46,12 @@ def format_post(vk_post, tags)
 	post = vk_post.text
 	if vk_post.attachments != nil
 		vk_post.attachments.each {|a|
-			if a.type == "photo" and (a.photo.photo_1280!=nil)
-				post += "\n![image](" + a.photo.photo_1280 + ")"
+			if a.type == "photo"
+				if a.photo.photo_1280!=nil
+					post += "\n![image](" + a.photo.photo_1280 + ")"
+				elsif a.photo.photo_604!=nil
+					post += "\n![image](" + a.photo.photo_604 + ")"
+				end
 			end
 		}
 	end
