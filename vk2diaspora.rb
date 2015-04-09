@@ -54,6 +54,8 @@ def format_post(vk_post, tags)
 				elsif a.photo.photo_807!=nil
 					post += "\n![image](" + a.photo.photo_807 + ")"
 				end
+			elsif a.type == "doc"
+				post += "\nFile: ["+a.doc.title+"]("+a.doc.url+")"
 			end
 		}
 	end
