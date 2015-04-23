@@ -56,6 +56,8 @@ def format_post(vk_post, tags)
 				end
 			elsif a.type == "doc"
 				post += "\nFile: ["+a.doc.title+"]("+a.doc.url+")"
+			elsif a.type == "link"
+				post += "\nLink: ["+a.link.title+"]("+a.link.url+")"
 			end
 		}
 	end
