@@ -51,6 +51,8 @@ def format_post(vk_post, tags)
 					post += "\n![image](" + a.photo.photo_1280 + ")"
 				elsif a.photo.photo_604!=nil
 					post += "\n![image](" + a.photo.photo_604 + ")"
+				elsif a.photo.photo_807!=nil
+					post += "\n![image](" + a.photo.photo_807 + ")"
 				end
 			end
 		}
