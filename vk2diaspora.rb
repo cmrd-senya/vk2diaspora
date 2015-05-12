@@ -182,7 +182,7 @@ for i in last_posted_nr...entries.count do
 	puts "Status: "
 	puts status
 
-	if status == 200 or status == 302
+	if status == 200 or status == 302 or status == 201
 		File.open(timestamp_file, "w") { |file|
 			file.puts timestamp
 		}
