@@ -44,6 +44,7 @@ end
 
 def format_post(vk_post, tags)
 	post = vk_post.text
+	post.gsub!(/\[([^\|]+)\|([^\]]+)\]/, '[\2](https://vk.com/\1)')
 	if vk_post.attachments != nil
 		vk_post.attachments.each {|a|
 			if a.type == "photo"
