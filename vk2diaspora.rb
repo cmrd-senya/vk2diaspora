@@ -175,15 +175,19 @@ for i in last_posted_nr...entries.count do
 	end
 
 	post = format_post(entries[i], options.tags)
-	post = post.gsub("\n", "  \n")
-	puts post
-	resp = diaspora_c.post(post, options.aspect)
+	unless post == "\n"
+	  post = post.gsub("\n", "  \n")
+	  puts post
+	  resp = diaspora_c.post(post, options.aspect)
 
-	status = resp.code.to_i
+	  status = resp.code.to_i
+	else
+	  status = "skipped"
+	end
 	puts "Status: "
 	puts status
 
-	if status == 200 or status == 302 or status == 201
+	if status == 200 or status == 302 or status == 201 or status == "skipped"
 		File.open(timestamp_file, "w") { |file|
 			file.puts timestamp
 		}
